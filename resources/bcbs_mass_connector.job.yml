@@ -1,0 +1,33 @@
+resources:
+  jobs:
+    bcbs_connector:
+      name: bcbs_connector
+      schedule:
+        # Run every day at 6:03 AM UTC
+        quartz_cron_expression: 0 3 6 * * ?
+        timezone_id: UTC
+        pause_status: UNPAUSED
+      environments:
+        - environment_key: serverless_env
+          spec:
+            environment_version: '4'
+            dependencies:
+              - dbt-core
+              - dbt-databricks
+      tasks:
+        - task_key: run_bcbs_connector
+          environment_key: serverless_env
+          dbt_task:
+            project_directory: ""
+            commands:
+              - dbt deps
+              - dbt seed -s package:the_tuva_project
+              - dbt build -s tag:input_layer --indirect-selection=cautious
+            warehouse_id: 56396305f7f5fc5f
+            catalog: bcbs_mass_test
+            schema: input_layer
+            source: GIT
+      tags:
+        team: DE
+      queue:
+        enabled: true

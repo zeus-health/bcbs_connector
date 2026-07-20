@@ -1,0 +1,151 @@
+version: 2
+
+models:
+  # staging
+  - name: stg_bcbs_commercial_hmo_member
+    description: "Staging model for BCBS commercial HMO members"
+    columns:
+      - name: cursubid
+        data_tests:
+          - not_null
+
+  - name: stg_bcbs_commercial_ppo_member
+    description: "Staging model for BCBS commercial PPO members"
+    columns:
+      - name: cursubid
+        data_tests:
+          - not_null
+
+  - name: stg_bcbs_medical_claims
+    description: "Staging model for BCBS medical claims"
+    columns:
+      - name: int_clm_num
+        data_tests:
+          - not_null
+
+  - name: stg_bcbs_pharmacy_claims
+    description: "Staging model for BCBS pharmacy claims"
+    columns:
+      - name: int_clm_num
+        data_tests:
+          - not_null
+
+  # intermediate
+  - name: int_bcbs_member_eligibility
+    description: "Intermediate model for BCBS member eligibility with normalized fields and proper casts"
+    columns:
+      - name: person_id
+        data_tests:
+          - not_null
+      - name: member_id
+        data_tests:
+          - not_null
+
+  - name: int_bcbs_medical_claims
+    description: "Intermediate model for BCBS medical claims with dedup, classification, and Tuva column mapping"
+    columns:
+      - name: claim_id
+        data_tests:
+          - not_null
+      - name: person_id
+        data_tests:
+          - not_null
+
+  - name: int_bcbs_pharmacy_claims
+    description: "Intermediate model for BCBS pharmacy claims with dedup and Tuva column mapping"
+    columns:
+      - name: claim_id
+        data_tests:
+          - not_null
+      - name: person_id
+        data_tests:
+          - not_null
+
+  - name: int_bcbs_provider_attribution
+    description: "Intermediate model for BCBS provider attribution derived from HMO/PPO member data"
+    columns:
+      - name: person_id
+        data_tests:
+          - not_null
+      - name: member_id
+        data_tests:
+          - not_null
+
+  # final
+  - name: eligibility
+    description: "Final eligibility model for BCBS"
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - person_id
+            - enrollment_start_date
+            - enrollment_end_date
+            - payer
+            - payer_type
+    columns:
+      - name: person_id
+        data_tests:
+          - not_null
+      - name: member_id
+        data_tests:
+          - not_null
+      - name: birth_date
+        data_tests:
+          - not_null
+      - name: enrollment_status
+        description: 'Enrollment status. Not available from BCBS; null placeholder for Tuva compatibility.'
+      - name: hospice_flag
+        description: 'Indicates whether the patient is enrolled in hospice (1 = yes, 0 = no, null = unknown). Required by Tuva CMS HCC mart.'
+      - name: institutional_snp_flag
+        description: 'Indicates whether the patient is enrolled in an institutional Special Needs Plan (1 = yes, 0 = no, null = unknown). Required by Tuva CMS HCC mart.'
+      - name: long_term_institutional_flag
+        description: 'Indicates whether the patient is in a long-term institutional setting (1 = yes, 0 = no, null = unknown). Required by Tuva CMS HCC mart.'
+
+  - name: medical_claim
+    description: "Final medical claim model for BCBS"
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - claim_id
+            - claim_line_number
+    columns:
+      - name: claim_id
+        data_tests:
+          - not_null
+      - name: claim_line_number
+        data_tests:
+          - not_null
+      - name: person_id
+        data_tests:
+          - not_null
+
+  - name: pharmacy_claim
+    description: "Final pharmacy claim model for BCBS"
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - claim_id
+            - claim_line_number
+    columns:
+      - name: claim_id
+        data_tests:
+          - not_null
+      - name: person_id
+        data_tests:
+          - not_null
+
+  - name: provider_attribution
+    description: "Final provider attribution model for BCBS"
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - person_id
+            - plan
+            - year_month
+    columns:
+      - name: person_id
+        data_tests:
+          - not_null
+      - name: member_id
+        data_tests:
+          - not_null
