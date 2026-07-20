@@ -6,7 +6,8 @@ sources:
       Raw BCBS data from source system.
       Note: payer, market, and lob columns contain incorrect metadata (DE-3263).
       These values are hard-coded in the intermediate layer until upstream config is fixed.
-    schema: raw_data
+    database: zus_insights
+    schema: insights_raw_claims_latest
     tables:
       - name: commercial_hmo_member
         description: "Raw BCBS HMO member eligibility file"
@@ -38,7 +39,7 @@ sources:
             description: "Market segment (WARNING: contains incorrect values per DE-3263; hard-coded downstream)"
           - name: lob
             description: "Line of business (WARNING: contains incorrect values per DE-3263; hard-coded downstream)"
-      - name: commercial_medical_claims
+      - name: bcbsm_med_claim
         description: "Raw BCBS medical claims file"
         columns:
           - name: int_clm_num
@@ -67,43 +68,6 @@ sources:
             description: "Member liability amount (component of total_cost_amount)"
           - name: cobamt
             description: "Coordination of benefits amount (component of total_cost_amount)"
-          - name: payer
-            description: "Payer identifier from source (WARNING: contains incorrect values per DE-3263; hard-coded downstream)"
-          - name: market
-            description: "Market segment (WARNING: contains incorrect values per DE-3263; hard-coded downstream)"
-          - name: lob
-            description: "Line of business (WARNING: contains incorrect values per DE-3263; hard-coded downstream)"
-          - name: date_id
-            description: "File/partition date"
-          - name: s3_path
-            description: "S3 file path"
-          - name: _run_time
-            description: "Run time timestamp of ingestion"
-      - name: commercial_pharmacy_claims
-        description: "Raw BCBS pharmacy claims file"
-        columns:
-          - name: int_clm_num
-            description: "Internal claim number"
-          - name: cursubid
-            description: "Subscriber ID (part of composite member key)"
-          - name: bcmbrnbr
-            description: "Member number (part of composite member key)"
-          - name: clm_ndc
-            description: "Drug code (NDC)"
-          - name: pddate
-            description: "Paid date"
-          - name: charge_amt
-            description: "Charge amount"
-          - name: netpay
-            description: "Net pay amount (total paid by insurer) → paid_amount"
-          - name: paid
-            description: "Paid/allowed amount (total allowed including insurer and patient) → allowed_amount"
-          - name: coins_amt
-            description: "Coinsurance amount"
-          - name: copay_amt
-            description: "Copayment amount"
-          - name: deduct_amt
-            description: "Deductible amount"
           - name: payer
             description: "Payer identifier from source (WARNING: contains incorrect values per DE-3263; hard-coded downstream)"
           - name: market

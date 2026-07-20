@@ -2,19 +2,16 @@ version: 2
 
 models:
   # staging
-  - name: stg_bcbs_commercial_hmo_member
+  - name: stg_bcbs_member
     description: "Staging model for BCBS commercial HMO members"
     columns:
       - name: cursubid
         data_tests:
           - not_null
-
-  - name: stg_bcbs_commercial_ppo_member
-    description: "Staging model for BCBS commercial PPO members"
-    columns:
-      - name: cursubid
-        data_tests:
-          - not_null
+    config:
+      tags: ["bcbs"]
+      schema: |
+        {%- if var('tuva_schema_prefix',None) != None -%}{{var('tuva_schema_prefix')}}_input_layer{% else %}input_layer{%- endif -%}      
 
   - name: stg_bcbs_medical_claims
     description: "Staging model for BCBS medical claims"
@@ -22,6 +19,10 @@ models:
       - name: int_clm_num
         data_tests:
           - not_null
+    config:
+      tags: ["bcbs"]          
+      schema: |
+        {%- if var('tuva_schema_prefix',None) != None -%}{{var('tuva_schema_prefix')}}_input_layer{% else %}input_layer{%- endif -%}      
 
   - name: stg_bcbs_pharmacy_claims
     description: "Staging model for BCBS pharmacy claims"
@@ -29,6 +30,10 @@ models:
       - name: int_clm_num
         data_tests:
           - not_null
+    config:
+      tags: ["bcbs"]        
+      schema: |
+        {%- if var('tuva_schema_prefix',None) != None -%}{{var('tuva_schema_prefix')}}_input_layer{% else %}input_layer{%- endif -%}        
 
   # intermediate
   - name: int_bcbs_member_eligibility
@@ -40,6 +45,10 @@ models:
       - name: member_id
         data_tests:
           - not_null
+    config:
+      tags: ["bcbs"]          
+      schema: |
+        {%- if var('tuva_schema_prefix',None) != None -%}{{var('tuva_schema_prefix')}}_input_layer{% else %}input_layer{%- endif -%}      
 
   - name: int_bcbs_medical_claims
     description: "Intermediate model for BCBS medical claims with dedup, classification, and Tuva column mapping"
@@ -50,6 +59,10 @@ models:
       - name: person_id
         data_tests:
           - not_null
+    config:
+      tags: ["bcbs"]      
+      schema: |
+        {%- if var('tuva_schema_prefix',None) != None -%}{{var('tuva_schema_prefix')}}_input_layer{% else %}input_layer{%- endif -%}          
 
   - name: int_bcbs_pharmacy_claims
     description: "Intermediate model for BCBS pharmacy claims with dedup and Tuva column mapping"
@@ -60,16 +73,10 @@ models:
       - name: person_id
         data_tests:
           - not_null
-
-  - name: int_bcbs_provider_attribution
-    description: "Intermediate model for BCBS provider attribution derived from HMO/PPO member data"
-    columns:
-      - name: person_id
-        data_tests:
-          - not_null
-      - name: member_id
-        data_tests:
-          - not_null
+    config:
+      tags: ["bcbs"] 
+      schema: |
+        {%- if var('tuva_schema_prefix',None) != None -%}{{var('tuva_schema_prefix')}}_input_layer{% else %}input_layer{%- endif -%}               
 
   # final
   - name: eligibility
@@ -100,6 +107,10 @@ models:
         description: 'Indicates whether the patient is enrolled in an institutional Special Needs Plan (1 = yes, 0 = no, null = unknown). Required by Tuva CMS HCC mart.'
       - name: long_term_institutional_flag
         description: 'Indicates whether the patient is in a long-term institutional setting (1 = yes, 0 = no, null = unknown). Required by Tuva CMS HCC mart.'
+    config:
+      tags: ["bcbs"]
+      schema: |
+        {%- if var('tuva_schema_prefix',None) != None -%}{{var('tuva_schema_prefix')}}_input_layer{% else %}input_layer{%- endif -%}      
 
   - name: medical_claim
     description: "Final medical claim model for BCBS"
@@ -118,6 +129,10 @@ models:
       - name: person_id
         data_tests:
           - not_null
+    config:
+      tags: ["bcbs"]          
+      schema: |
+        {%- if var('tuva_schema_prefix',None) != None -%}{{var('tuva_schema_prefix')}}_input_layer{% else %}input_layer{%- endif -%}      
 
   - name: pharmacy_claim
     description: "Final pharmacy claim model for BCBS"
@@ -133,19 +148,7 @@ models:
       - name: person_id
         data_tests:
           - not_null
-
-  - name: provider_attribution
-    description: "Final provider attribution model for BCBS"
-    data_tests:
-      - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - person_id
-            - plan
-            - year_month
-    columns:
-      - name: person_id
-        data_tests:
-          - not_null
-      - name: member_id
-        data_tests:
-          - not_null
+    config:
+      tags: ["bcbs"]
+      schema: |
+        {%- if var('tuva_schema_prefix',None) != None -%}{{var('tuva_schema_prefix')}}_input_layer{% else %}input_layer{%- endif -%}      
