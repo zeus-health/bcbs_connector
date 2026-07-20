@@ -1,0 +1,41 @@
+name: bcbs_connector
+version: '1.0.0'
+config-version: 2
+
+profile: dbt_bcbs
+
+flags:
+  require_ref_searches_node_package_before_root: true
+
+vars:
+  exclude_packages: ["all"]
+  passthrough:
+    prefix: 'x_'    # Prefix to identify passthrough columns
+    strip: false    # Whether to strip prefix in final output
+  claims_enabled: true
+  provider_attribution_enabled: true
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  bcbs_connector:
+    +schema: input_layer
+    +tags: ['input_layer']
+    final:
+      +materialized: table
+    intermediate:
+      +schema: bcbs_intermediate
+    staging:
+      +schema: bcbs_staging
+seeds:
+  bcbs_connector:
+    +schema: input_layer
