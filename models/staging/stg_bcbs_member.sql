@@ -6,7 +6,7 @@ select distinct
     cast(parse_json(data):mbi_number as {{ dbt.type_string() }}) as bcmbrnbr,
     cast(parse_json(data):member_first_name as {{ dbt.type_string() }}) as mem_first_name,
     cast(parse_json(data):member_last_name as {{ dbt.type_string() }}) as mem_last_name,
-    cast(parse_json(data):member_date_of_birth as date) as mem_birth_dt,
+    to_date(cast(parse_json(data):member_date_of_birth as string), 'YYYYMMDD') as mem_birth_dt,
     cast(parse_json(data):member_gender as {{ dbt.type_string() }}) as mem_gender,
     cast('1990-01-01' as date) as mem_mth_st_dt,
     cast('2099-01-01' as date) as mem_mth_end_dt,
@@ -23,7 +23,7 @@ select distinct
     cast(parse_json(data):pcp_npi as {{ dbt.type_string() }}) as pcp_npi,
     cast(null as {{ dbt.type_int() }}) as mem_mth_cnt,
     null as filename,
-    cast(null as date) as date_id,
+    current_date as date_id,
     null as s3_path,
     current_timestamp as _run_time
 from {{ source('bcbs', 'bcbsm_med_claim') }}

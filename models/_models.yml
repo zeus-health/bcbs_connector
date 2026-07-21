@@ -49,6 +49,7 @@ models:
       tags: ["bcbs"]          
       schema: |
         {%- if var('tuva_schema_prefix',None) != None -%}{{var('tuva_schema_prefix')}}_input_layer{% else %}input_layer{%- endif -%}      
+      
 
   - name: int_bcbs_medical_claims
     description: "Intermediate model for BCBS medical claims with dedup, classification, and Tuva column mapping"
@@ -111,6 +112,7 @@ models:
       tags: ["bcbs"]
       schema: |
         {%- if var('tuva_schema_prefix',None) != None -%}{{var('tuva_schema_prefix')}}_input_layer{% else %}input_layer{%- endif -%}      
+      materialized: table
 
   - name: medical_claim
     description: "Final medical claim model for BCBS"
@@ -133,6 +135,7 @@ models:
       tags: ["bcbs"]          
       schema: |
         {%- if var('tuva_schema_prefix',None) != None -%}{{var('tuva_schema_prefix')}}_input_layer{% else %}input_layer{%- endif -%}      
+      materialized: table
 
   - name: pharmacy_claim
     description: "Final pharmacy claim model for BCBS"
@@ -152,3 +155,4 @@ models:
       tags: ["bcbs"]
       schema: |
         {%- if var('tuva_schema_prefix',None) != None -%}{{var('tuva_schema_prefix')}}_input_layer{% else %}input_layer{%- endif -%}      
+      materialized: table

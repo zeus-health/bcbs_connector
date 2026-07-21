@@ -61,7 +61,7 @@ select
   cast(concat('bcbs', '|', 'MA', '|', 'COMM', '.', indiv_entpr_id) as {{ dbt.type_string() }}) as person_id,
   cast(indiv_entpr_id as {{ dbt.type_string() }}) as member_id,
   cast('bcbs' as {{ dbt.type_string() }}) as payer,
-  cast('COMM' as {{ dbt.type_string() }}) as payer_type,
+  cast(null as {{ dbt.type_string() }}) as payer_type,
   cast(lob as {{ dbt.type_string() }}) as plan,
   {{ validate_npi('clm_pdea_npi') }} as prescribing_provider_npi,
   cast(pharm_npi as {{ dbt.type_string() }}) as dispensing_provider_npi,

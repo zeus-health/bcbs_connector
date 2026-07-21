@@ -116,7 +116,7 @@ select
   cast(concat('bcbs', '|', 'MA', '|', 'COMM', '.', r.indiv_entpr_id) as {{ dbt.type_string() }}) as person_id,
   cast(r.indiv_entpr_id as {{ dbt.type_string() }}) as member_id,
   cast('bcbs' as {{ dbt.type_string() }}) as payer,
-  cast('COMM' as {{ dbt.type_string() }}) as payer_type,
+  cast(null as {{ dbt.type_string() }}) as payer_type,
   cast(r.lob as {{ dbt.type_string() }}) as plan,
   coalesce(cast(r.claim_start_date as date), cast(r.svcdt as date)) as claim_start_date,
   coalesce(cast(r.claim_end_date as date), cast(r.svcdt as date)) as claim_end_date,

@@ -52,4 +52,3 @@ select
 from {{ ref('int_bcbs_member_eligibility') }}
 where person_id is not null
   and member_id is not null
-  and x_mem_mth_cnt = 1
