@@ -10,7 +10,6 @@ flags:
 vars:
   exclude_packages: ["all"]
   claims_enabled: true
-  hcc_recapture_year_lookback: 2
   tuva_schema_prefix: bcbs
 
 model-paths: ["models"]
