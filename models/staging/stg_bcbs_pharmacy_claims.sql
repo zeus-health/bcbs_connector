@@ -28,4 +28,4 @@ select
     null as _run_time,
     null as s3_path,
     null as filename
-
+limit 0
