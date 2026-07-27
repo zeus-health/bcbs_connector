@@ -8,6 +8,7 @@ select distinct
     cast(parse_json(data):member_last_name as {{ dbt.type_string() }}) as mem_last_name,
     to_date(cast(parse_json(data):member_date_of_birth as string), 'YYYYMMDD') as mem_birth_dt,
     cast(parse_json(data):member_gender as {{ dbt.type_string() }}) as mem_gender,
+    -- HACK: No start or stop dates so putting in as wide a span as possible
     cast('1990-01-01' as date) as mem_mth_st_dt,
     cast('2099-01-01' as date) as mem_mth_end_dt,
     cast('BCBS' as {{ dbt.type_string() }}) as payer,
