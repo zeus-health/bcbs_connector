@@ -28,4 +28,5 @@ select
     null as _run_time,
     null as s3_path,
     null as filename
+-- There are no pharmacy claims to map, so putting this as a placeholder so downstream data marts still run successfully
 limit 0
