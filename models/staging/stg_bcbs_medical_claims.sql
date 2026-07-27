@@ -56,7 +56,7 @@ select
     cast(parse_json(data):icd_procedure_5 as {{ dbt.type_string() }}) as icd_proc5_cd,
     cast(null as {{ dbt.type_string() }}) as dw_netwk_ind,
     cast(null as {{ dbt.type_string() }}) as curr_clm_ind,
-    current_timestamp as date_id,
+    current_date as date_id,
     current_timestamp as _run_time,
     null as s3_path,
     file_group_id as filename

@@ -24,7 +24,7 @@ select
     cast(null as {{ dbt.type_string() }}) as copay_amt,
     cast(null as {{ dbt.type_string() }}) as deduct_amt,
     cast(null as {{ dbt.type_string() }}) as rx_curr_clm_ind,
-    cast(null as date) as date_id,
+    current_date as date_id,
     null as _run_time,
     null as s3_path,
     null as filename
