@@ -7,7 +7,7 @@ sources:
       Note: payer, market, and lob columns contain incorrect metadata (DE-3263).
       These values are hard-coded in the intermediate layer until upstream config is fixed.
     database: zus_insights
-    schema: insights_raw_claims_latest
+    schema: insights_raw_claims_streaming
     tables:
       - name: commercial_hmo_member
         description: "Raw BCBS HMO member eligibility file"
@@ -39,6 +39,7 @@ sources:
             description: "Market segment (WARNING: contains incorrect values per DE-3263; hard-coded downstream)"
           - name: lob
             description: "Line of business (WARNING: contains incorrect values per DE-3263; hard-coded downstream)"
+      - name: bcbsm_edps_claim
       - name: bcbsm_med_claim
         description: "Raw BCBS medical claims file"
         columns:

@@ -39,16 +39,9 @@ select
     cast(null as {{ dbt.type_string() }}) as dw_mem_liab_amt,
     cast(parse_json(data):cob_amount as {{ dbt.type_string() }}) as cobamt,
     cast(10 as {{ dbt.type_string() }}) as icd_subm_ind,
-    cast(parse_json(data):icd_diagnoses_1 as {{ dbt.type_string() }}) as icd_diag1_cd,
-    cast(parse_json(data):icd_diagnoses_2 as {{ dbt.type_string() }}) as icd_diag2_cd,
-    cast(parse_json(data):icd_diagnoses_3 as {{ dbt.type_string() }}) as icd_diag3_cd,
-    cast(parse_json(data):icd_diagnoses_4 as {{ dbt.type_string() }}) as icd_diag4_cd,
-    cast(parse_json(data):icd_diagnoses_5 as {{ dbt.type_string() }}) as icd_diag5_cd,
-    cast(parse_json(data):icd_diagnoses_6 as {{ dbt.type_string() }}) as icd_diag6_cd,
-    cast(parse_json(data):icd_diagnoses_7 as {{ dbt.type_string() }}) as icd_diag7_cd,
-    cast(parse_json(data):icd_diagnoses_8 as {{ dbt.type_string() }}) as icd_diag8_cd,
-    cast(parse_json(data):icd_diagnoses_9 as {{ dbt.type_string() }}) as icd_diag9_cd,
-    cast(parse_json(data):icd_diagnoses_10 as {{ dbt.type_string() }}) as icd_diag10_cd,
+    {% for i in range(1, 26) -%}
+    cast(parse_json(data):icd_diagnoses_{{ i }} as {{ dbt.type_string() }}) as icd_diag{{ i }}_cd,
+    {% endfor -%}
     cast(parse_json(data):icd_procedure_1 as {{ dbt.type_string() }}) as icd_proc1_cd,
     cast(parse_json(data):icd_procedure_2 as {{ dbt.type_string() }}) as icd_proc2_cd,
     cast(parse_json(data):icd_procedure_3 as {{ dbt.type_string() }}) as icd_proc3_cd,
@@ -59,5 +52,6 @@ select
     current_date as date_id,
     current_timestamp as _run_time,
     null as s3_path,
-    file_group_id as filename
+    file_group_id as filename,
+    cast('MED' as {{ dbt.type_string() }}) as data_source
 from {{ source('bcbs', 'bcbsm_med_claim') }}
