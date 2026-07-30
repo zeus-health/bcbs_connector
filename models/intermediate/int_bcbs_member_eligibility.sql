@@ -28,34 +28,8 @@ with unioned as (
     date_id,
     s3_path,
     _run_time,
-    'HMO' as source_plan_type
-  from {{ ref('stg_bcbs_commercial_hmo_member') }}
-  union all
-  select
-    cursubid,
-    bcmbrnbr,
-    mem_first_name,
-    mem_last_name,
-    mem_birth_dt,
-    mem_gender,
-    mem_mth_st_dt,
-    mem_mth_end_dt,
-    payer,
-    market,
-    netwk_prod_cd,
-    lob,
-    mem_street,
-    mem_city,
-    mem_state,
-    mem_zip_cd,
-    mem_phone_num,
-    mem_mth_cnt,
-    filename,
-    date_id,
-    s3_path,
-    _run_time,
-    'PPO' as source_plan_type
-  from {{ ref('stg_bcbs_commercial_ppo_member') }}
+    null as source_plan_type
+  from {{ ref('stg_bcbs_member') }}
 ),
 
 -- Only use the latest snapshot file — each BCBS file is cumulative, so the
@@ -95,7 +69,8 @@ select
     cast(s.mem_mth_st_dt as date) as enrollment_start_date,
     cast(s.mem_mth_end_dt as date) as enrollment_end_date,
     cast('bcbs' as {{ dbt.type_string() }}) as payer,
-    cast('COMM' as {{ dbt.type_string() }}) as payer_type,
+    -- HACK: Payer type is null so CMS HCC flows through since currently it only allows medicare + null payer types
+    cast(null as {{ dbt.type_string() }}) as payer_type,
     cast(s.source_plan_type as {{ dbt.type_string() }}) as plan,
     cast(null as {{ dbt.type_string() }}) as original_reason_entitlement_code,
     cast(null as {{ dbt.type_string() }}) as dual_status_code,

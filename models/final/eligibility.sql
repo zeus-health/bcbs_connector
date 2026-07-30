@@ -15,6 +15,14 @@ select
     original_reason_entitlement_code,
     dual_status_code,
     medicare_status_code,
+    null as medicaid_indicator,
+    null as part_d_raf_type,
+    null as low_income_subsidy_indicator,
+    null as metal_level,
+    null as csr_indicator,
+    null as enrollment_duration_months,
+    null as esrd_status,
+    null as transplant_duration_months,
     group_id,
     group_name,
     name_suffix,
@@ -44,4 +52,3 @@ select
 from {{ ref('int_bcbs_member_eligibility') }}
 where person_id is not null
   and member_id is not null
-  and x_mem_mth_cnt = 1
