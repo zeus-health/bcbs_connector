@@ -2,7 +2,7 @@ with source as (
 
     select
         *,
-        cast(parse_json(data):diagnosis_codes as {{ dbt.type_string() }}) as diagnosis_codes_raw
+        cast(parse_json(data):additional_diagnoses_code as {{ dbt.type_string() }}) as diagnosis_codes_raw
     from {{ source('bcbs', 'bcbsm_edps_claim') }}
     where allowed_indicator = 'A'
 
@@ -18,7 +18,7 @@ select
     cast('BCBS' as string) as payer,
     null as market,
     cast('MA' as string) as lob,
-    cast(null as date) as svcdt,
+    to_date(reporting_year_month, 'YYYYMM') as svcdt,
     cast(null as date) as admitdt,
     cast(null as date) as dischdt,
     cast(null as {{ dbt.type_string() }}) as admit_source_cd,
@@ -51,8 +51,9 @@ select
     -- delimiter ('*A*') when populated, or '* *' when the slot is empty. Extract
     -- the code (capture group 1) preceding the Nth populated delimiter; empty
     -- slots and unfilled positions yield NULL.
-    {% for i in range(1, 26) -%}
-    cast(regexp_substr(diagnosis_codes_raw, '([A-Z0-9]+)\\s*\\*[^*\\s]\\*', 1, {{ i }}, 'e', 1) as {{ dbt.type_string() }}) as icd_diag{{ i }}_cd,
+    diagnosis_codes as icd_diag1,
+    {% for i in range(2, 26) -%}
+    cast(regexp_substr(diagnosis_codes_raw, '([A-Z0-9]+)\\s*\\*[^*\\s]\\*', 1, {{ i }} - 1, 'e', 1) as {{ dbt.type_string() }}) as icd_diag{{ i }}_cd,
     {% endfor -%}
     cast(null as {{ dbt.type_string() }}) as icd_proc1_cd,
     cast(null as {{ dbt.type_string() }}) as icd_proc2_cd,
