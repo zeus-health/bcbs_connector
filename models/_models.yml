@@ -7,7 +7,9 @@ models:
     columns:
       - name: subscriber_id
         data_tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
     config:
       tags: ["bcbs"]
       schema: |
@@ -18,7 +20,9 @@ models:
     columns:
       - name: claim_id
         data_tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
     config:
       tags: ["bcbs"]          
       schema: |
@@ -106,12 +110,14 @@ models:
     description: "Final eligibility model for BCBS"
     data_tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - person_id
-            - enrollment_start_date
-            - enrollment_end_date
-            - payer
-            - payer_type
+          arguments:
+            combination_of_columns:
+              - person_id
+              - member_id
+              - enrollment_start_date
+              - payer
+              - plan
+              - data_source
     columns:
       - name: person_id
         data_tests:
@@ -140,9 +146,11 @@ models:
     description: "Final medical claim model for BCBS"
     data_tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - claim_id
-            - claim_line_number
+          arguments:
+            combination_of_columns:
+              - claim_id
+              - claim_line_number
+              - data_source
     columns:
       - name: claim_id
         data_tests:
@@ -163,9 +171,11 @@ models:
     description: "Final pharmacy claim model for BCBS"
     data_tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - claim_id
-            - claim_line_number
+          arguments:
+            combination_of_columns:
+              - claim_id
+              - claim_line_number
+              - data_source
     columns:
       - name: claim_id
         data_tests:

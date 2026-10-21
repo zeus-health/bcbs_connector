@@ -61,7 +61,7 @@ select
       when upper(s.mem_gender) = 'M' then 'male'
       when upper(s.mem_gender) = 'F' then 'female'
       else 'unknown'
-    end as {{ dbt.type_string() }}) as gender,
+    end as {{ dbt.type_string() }}) as sex,
     cast(null as {{ dbt.type_string() }}) as race,
     cast(s.mem_birth_dt as date) as birth_date,
     cast(null as date) as death_date,
