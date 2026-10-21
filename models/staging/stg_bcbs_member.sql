@@ -1,30 +1,16 @@
--- Staging model for BCBS commercial HMO members
--- Pulls raw columns from commercial_hmo_member with type casts only
+-- Staging model for BCBS members
+-- Members are sourced from the member fields on bcbsm_med_claim (no standalone member file).
+-- 1:1 with the source: JSON fields are extracted under their source names, no renaming, hard-coding,
+-- or deduplication. Mapping to the Tuva shape happens in int_bcbs_member_eligibility.
 
-select distinct
-    cast(parse_json(data):subscriber_id as {{ dbt.type_string() }}) as cursubid,
-    cast(parse_json(data):mbi_number as {{ dbt.type_string() }}) as bcmbrnbr,
-    cast(parse_json(data):member_first_name as {{ dbt.type_string() }}) as mem_first_name,
-    cast(parse_json(data):member_last_name as {{ dbt.type_string() }}) as mem_last_name,
-    to_date(cast(parse_json(data):member_date_of_birth as string), 'YYYYMMDD') as mem_birth_dt,
-    cast(parse_json(data):member_gender as {{ dbt.type_string() }}) as mem_gender,
-    -- HACK: No start or stop dates so putting in as wide a span as possible
-    cast('1990-01-01' as date) as mem_mth_st_dt,
-    cast('2099-01-01' as date) as mem_mth_end_dt,
-    cast('BCBS' as {{ dbt.type_string() }}) as payer,
-    null as market,
-    cast(null as {{ dbt.type_string() }}) as netwk_prod_cd,
-    cast(parse_json(data):line_of_business as string) as lob,
-    cast(null as {{ dbt.type_string() }}) as mem_street,
-    cast(null as {{ dbt.type_string() }}) as mem_street2,
-    cast(null as {{ dbt.type_string() }}) as mem_city,
-    cast(null as {{ dbt.type_string() }}) as mem_state,
-    cast(null as {{ dbt.type_string() }}) as mem_zip_cd,
-    cast(null as {{ dbt.type_string() }}) as mem_phone_num,
-    cast(parse_json(data):pcp_npi as {{ dbt.type_string() }}) as pcp_npi,
-    cast(null as {{ dbt.type_int() }}) as mem_mth_cnt,
-    null as filename,
-    current_date as date_id,
-    null as s3_path,
-    current_timestamp as _run_time
+select
+    file_group_id,
+    cast(parse_json(data):subscriber_id as {{ dbt.type_string() }}) as subscriber_id,
+    cast(parse_json(data):mbi_number as {{ dbt.type_string() }}) as mbi_number,
+    cast(parse_json(data):member_first_name as {{ dbt.type_string() }}) as member_first_name,
+    cast(parse_json(data):member_last_name as {{ dbt.type_string() }}) as member_last_name,
+    cast(parse_json(data):member_date_of_birth as {{ dbt.type_string() }}) as member_date_of_birth,
+    cast(parse_json(data):member_gender as {{ dbt.type_string() }}) as member_gender,
+    cast(parse_json(data):line_of_business as {{ dbt.type_string() }}) as line_of_business,
+    cast(parse_json(data):pcp_npi as {{ dbt.type_string() }}) as pcp_npi
 from {{ source('bcbs', 'bcbsm_med_claim') }}

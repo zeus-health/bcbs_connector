@@ -3,9 +3,9 @@ version: 2
 models:
   # staging
   - name: stg_bcbs_member
-    description: "Staging model for BCBS commercial HMO members"
+    description: "Staging model for BCBS members, 1:1 with the member fields on the bcbsm_med_claim source"
     columns:
-      - name: cursubid
+      - name: subscriber_id
         data_tests:
           - not_null
     config:
@@ -14,15 +14,26 @@ models:
         {%- if var('tuva_schema_prefix',None) != None -%}{{var('tuva_schema_prefix')}}_input_layer{% else %}input_layer{%- endif -%}      
 
   - name: stg_bcbs_medical_claims
-    description: "Staging model for BCBS medical claims"
+    description: "Staging model for BCBS medical claims, 1:1 with the bcbsm_med_claim source"
     columns:
-      - name: int_clm_num
+      - name: claim_id
         data_tests:
           - not_null
     config:
       tags: ["bcbs"]          
       schema: |
         {%- if var('tuva_schema_prefix',None) != None -%}{{var('tuva_schema_prefix')}}_input_layer{% else %}input_layer{%- endif -%}      
+
+  - name: stg_bcbs_edps_medical_claims
+    description: "Staging model for BCBS EDPS (encounter) medical claims, 1:1 with the bcbsm_edps_claim source"
+    columns:
+      - name: encounter_internal_control_number
+        data_tests:
+          - not_null
+    config:
+      tags: ["bcbs"]
+      schema: |
+        {%- if var('tuva_schema_prefix',None) != None -%}{{var('tuva_schema_prefix')}}_input_layer{% else %}input_layer{%- endif -%}
 
   - name: stg_bcbs_pharmacy_claims
     description: "Staging model for BCBS pharmacy claims"
@@ -50,6 +61,17 @@ models:
       schema: |
         {%- if var('tuva_schema_prefix',None) != None -%}{{var('tuva_schema_prefix')}}_input_layer{% else %}input_layer{%- endif -%}      
       
+
+  - name: int_bcbs_medical_claim_combined
+    description: "Intermediate model mapping BCBS MED and EDPS staging claims onto a shared claim contract and unioning them"
+    columns:
+      - name: int_clm_num
+        data_tests:
+          - not_null
+    config:
+      tags: ["bcbs"]
+      schema: |
+        {%- if var('tuva_schema_prefix',None) != None -%}{{var('tuva_schema_prefix')}}_input_layer{% else %}input_layer{%- endif -%}
 
   - name: int_bcbs_medical_claims
     description: "Intermediate model for BCBS medical claims with dedup, classification, and Tuva column mapping"

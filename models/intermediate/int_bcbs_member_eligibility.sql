@@ -2,32 +2,33 @@
 -- Payer, market, and LOB are hard-coded per DE-3263 (raw_data metadata is incorrect)
 -- Dedup handles duplicate file uploads via _run_time
 -- Column renaming from raw names to Tuva shape happens here (not in staging)
--- UNIONs HMO and PPO staging models (one staging model per raw table)
+-- Members come from claim rows, so the same member repeats once per claim line; select distinct collapses them
 
 with unioned as (
-  select
-    cursubid,
-    bcmbrnbr,
-    mem_first_name,
-    mem_last_name,
-    mem_birth_dt,
-    mem_gender,
-    mem_mth_st_dt,
-    mem_mth_end_dt,
-    payer,
-    market,
-    netwk_prod_cd,
-    lob,
-    mem_street,
-    mem_city,
-    mem_state,
-    mem_zip_cd,
-    mem_phone_num,
-    mem_mth_cnt,
-    filename,
-    date_id,
-    s3_path,
-    _run_time,
+  select distinct
+    subscriber_id as cursubid,
+    mbi_number as bcmbrnbr,
+    member_first_name as mem_first_name,
+    member_last_name as mem_last_name,
+    to_date(member_date_of_birth, 'YYYYMMDD') as mem_birth_dt,
+    member_gender as mem_gender,
+    -- HACK: No start or stop dates so putting in as wide a span as possible
+    cast('1990-01-01' as date) as mem_mth_st_dt,
+    cast('2099-01-01' as date) as mem_mth_end_dt,
+    cast('BCBS' as {{ dbt.type_string() }}) as payer,
+    cast(null as {{ dbt.type_string() }}) as market,
+    cast(null as {{ dbt.type_string() }}) as netwk_prod_cd,
+    line_of_business as lob,
+    cast(null as {{ dbt.type_string() }}) as mem_street,
+    cast(null as {{ dbt.type_string() }}) as mem_city,
+    cast(null as {{ dbt.type_string() }}) as mem_state,
+    cast(null as {{ dbt.type_string() }}) as mem_zip_cd,
+    cast(null as {{ dbt.type_string() }}) as mem_phone_num,
+    cast(null as {{ dbt.type_int() }}) as mem_mth_cnt,
+    cast(null as {{ dbt.type_string() }}) as filename,
+    current_date as date_id,
+    cast(null as {{ dbt.type_string() }}) as s3_path,
+    current_timestamp as _run_time,
     null as source_plan_type
   from {{ ref('stg_bcbs_member') }}
 ),
