@@ -114,7 +114,8 @@ edps_claims as (
         cast(null as {{ dbt.type_string() }}) as icd_proc4_cd,
         cast(null as {{ dbt.type_string() }}) as icd_proc5_cd,
         cast(null as {{ dbt.type_string() }}) as dw_netwk_ind,
-        cast(null as {{ dbt.type_string() }}) as curr_clm_ind,
+        -- EDPS has no adjustment records and is already filtered to allowed encounters, so every row is current
+        cast('Y' as {{ dbt.type_string() }}) as curr_clm_ind,
         current_date as date_id,
         current_timestamp as _run_time,
         cast(null as {{ dbt.type_string() }}) as s3_path,
