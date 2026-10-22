@@ -151,3 +151,5 @@ select
     file_date,
     ingest_datetime
 from {{ ref('int_bcbs_medical_claims') }}
+-- Claims without a member identifier can't be attributed to a person; surfaced as a warning in int_bcbs_medical_claims
+where person_id is not null

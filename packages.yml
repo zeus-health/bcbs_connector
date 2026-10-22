@@ -1,3 +1,3 @@
 packages:
-  - git: https://github.com/tuva-health/tuva.git
-    revision: "8a730acb3a12ffd764c2741b504d20c4f8bc2908"
+  - git: https://github.com/tuva-health/tuva-core.git
+    revision: "v1.0.0"

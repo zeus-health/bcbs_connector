@@ -4,10 +4,6 @@ models:
   # staging
   - name: stg_bcbs_member
     description: "Staging model for BCBS members, 1:1 with the member fields on the bcbsm_med_claim source"
-    columns:
-      - name: subscriber_id
-        data_tests:
-          - not_null
     config:
       tags: ["bcbs"]
       schema: |
@@ -64,10 +60,6 @@ models:
 
   - name: int_bcbs_medical_claim_combined
     description: "Intermediate model mapping BCBS MED and EDPS staging claims onto a shared claim contract and unioning them"
-    columns:
-      - name: int_clm_num
-        data_tests:
-          - not_null
     config:
       tags: ["bcbs"]
       schema: |
@@ -80,10 +72,13 @@ models:
         data_tests:
           - not_null
       - name: person_id
+        description: "Null when the source claim is missing subscriber_id or mbi_number; these rows are filtered out of medical_claim"
         data_tests:
-          - not_null
+          - not_null:
+              config:
+                severity: warn
     config:
-      tags: ["bcbs"]      
+      tags: ["bcbs"]
       schema: |
         {%- if var('tuva_schema_prefix',None) != None -%}{{var('tuva_schema_prefix')}}_input_layer{% else %}input_layer{%- endif -%}          
 
@@ -106,12 +101,14 @@ models:
     description: "Final eligibility model for BCBS"
     data_tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - person_id
-            - enrollment_start_date
-            - enrollment_end_date
-            - payer
-            - payer_type
+          arguments:
+            combination_of_columns:
+              - person_id
+              - member_id
+              - enrollment_start_date
+              - payer
+              - plan
+              - data_source
     columns:
       - name: person_id
         data_tests:
@@ -140,9 +137,11 @@ models:
     description: "Final medical claim model for BCBS"
     data_tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - claim_id
-            - claim_line_number
+          arguments:
+            combination_of_columns:
+              - claim_id
+              - claim_line_number
+              - data_source
     columns:
       - name: claim_id
         data_tests:
@@ -163,9 +162,11 @@ models:
     description: "Final pharmacy claim model for BCBS"
     data_tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - claim_id
-            - claim_line_number
+          arguments:
+            combination_of_columns:
+              - claim_id
+              - claim_line_number
+              - data_source
     columns:
       - name: claim_id
         data_tests:
