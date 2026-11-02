@@ -28,3 +28,8 @@ clean-targets:
 seeds:
   bcbs_connector:
     +schema: input_layer
+
+models:
+  bcbs_connector:
+    intermediate:
+      +materialized: table

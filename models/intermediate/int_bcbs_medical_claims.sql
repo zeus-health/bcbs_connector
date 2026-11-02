@@ -24,7 +24,8 @@ ranked as (
     s.clm_line_num,
     s.revenue_cd,
     s.cms_place_srv_cd,
-    concat(s.cursubid, s.bcmbrnbr) as indiv_entpr_id,
+    s.bcmbrnbr as mbi_id,
+    cursubid as subscriber_id,
     s.payer,
     s.market,
     s.lob,
@@ -101,14 +102,15 @@ claim_types as (
     where c.int_clm_num = s.int_clm_num
   )
   group by s.int_clm_num
-)
+),
 
+claim_lines as (
 select
   cast(r.int_clm_num as {{ dbt.type_string() }}) as claim_id,
   cast(r.clm_line_num as {{ dbt.type_int() }}) as claim_line_number,
   cast(ct.claim_type as {{ dbt.type_string() }}) as claim_type,
-  cast(concat('bcbs', '|', 'MA', '|', 'COMM', '.', r.indiv_entpr_id) as {{ dbt.type_string() }}) as person_id,
-  cast(r.indiv_entpr_id as {{ dbt.type_string() }}) as member_id,
+  cast(coalesce(r.mbi_id, r.subscriber_id) as {{ dbt.type_string() }}) as person_id,
+  cast(coalesce(r.mbi_id, r.subscriber_id) as {{ dbt.type_string() }}) as member_id,
   cast('bcbs' as {{ dbt.type_string() }}) as payer,
   -- HACK: Payer type is null so CMS HCC flows through since currently it only allows medicare + null payer types
   cast(null as {{ dbt.type_string() }}) as payer_type,
@@ -254,3 +256,41 @@ left join claim_types ct on r.int_clm_num = ct.int_clm_num
 where r.rn = 1
   and (r.sprovnpi is null or {{ validate_npi('r.sprovnpi') }} is not null)
   and (r.bprovnpi is null or {{ validate_npi('r.bprovnpi') }} is not null)
+),
+
+-- The same claim can be billed to different members across claim lines. Pick the
+-- (member_id, person_id) pair that appears on the most lines for each claim; ties
+-- break deterministically on the identifiers themselves.
+claim_member_counts as (
+  select
+    claim_id,
+    member_id,
+    person_id,
+    count(*) as line_count
+  from claim_lines
+  where member_id is not null
+  group by claim_id, member_id, person_id
+),
+
+claim_member as (
+  select
+    claim_id,
+    member_id,
+    person_id,
+    row_number() over (
+      partition by claim_id
+      order by line_count desc, member_id, person_id
+    ) as member_rank
+  from claim_member_counts
+)
+
+-- Overwrite every line of a claim with its most prevalent member
+select
+  cl.* replace (
+    coalesce(cm.member_id, cl.member_id) as member_id,
+    coalesce(cm.person_id, cl.person_id) as person_id
+  )
+from claim_lines cl
+left join claim_member cm
+  on cl.claim_id = cm.claim_id
+  and cm.member_rank = 1
