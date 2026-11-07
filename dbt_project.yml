@@ -31,5 +31,7 @@ seeds:
 
 models:
   bcbs_connector:
+    staging:
+      +materialized: table
     intermediate:
       +materialized: table
