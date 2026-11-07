@@ -1,13 +1,14 @@
 -- Intermediate BCBS medical claims: classify, compute span, and dedupe by claim+line (prefer CURR_CLM_IND='Y')
 -- Payer, market, and LOB are hard-coded per DE-3263 (raw_data metadata is incorrect)
 -- Column renaming from raw names to Tuva shape happens here (not in staging)
--- Like eligibility, medical claims files are cumulative — only use the latest snapshot file.
+-- MED deliveries are appended, so each claim is kept only at its newest extract_year_month
+-- (all of its lines from that period), matching the read-time recency in insights.
 -- Claims with both positive and negative amounts (reversals) cancel out and are excluded.
 
 with latest_snapshot as (
   select *
-  from {{ ref('stg_bcbs_medical_claims') }}
-  where date_id = (select max(date_id) from {{ ref('stg_bcbs_medical_claims') }})
+  from {{ ref('int_bcbs_medical_claim_combined') }}
+  qualify extract_year_month = max(extract_year_month) over (partition by int_clm_num)
 ),
 
 -- Claims that have both positive and negative amounts cancel out (reversals)
@@ -24,7 +25,8 @@ ranked as (
     s.clm_line_num,
     s.revenue_cd,
     s.cms_place_srv_cd,
-    concat(s.cursubid, s.bcmbrnbr) as indiv_entpr_id,
+    s.bcmbrnbr as mbi_id,
+    cursubid as subscriber_id,
     s.payer,
     s.market,
     s.lob,
@@ -53,16 +55,9 @@ ranked as (
     s.dw_mem_liab_amt,
     s.cobamt,
     s.icd_subm_ind,
-    s.icd_diag1_cd,
-    s.icd_diag2_cd,
-    s.icd_diag3_cd,
-    s.icd_diag4_cd,
-    s.icd_diag5_cd,
-    s.icd_diag6_cd,
-    s.icd_diag7_cd,
-    s.icd_diag8_cd,
-    s.icd_diag9_cd,
-    s.icd_diag10_cd,
+    {% for i in range(1, 26) -%}
+    s.icd_diag{{ i }}_cd,
+    {% endfor -%}
     s.icd_proc1_cd,
     s.icd_proc2_cd,
     s.icd_proc3_cd,
@@ -74,6 +69,7 @@ ranked as (
     s._run_time,
     s.s3_path,
     s.filename,
+    s.data_source,
     min(case when upper(coalesce(s.curr_clm_ind, '')) = 'Y' then s.svcdt end) over (
       partition by s.int_clm_num
     ) as claim_start_date,
@@ -107,16 +103,18 @@ claim_types as (
     where c.int_clm_num = s.int_clm_num
   )
   group by s.int_clm_num
-)
+),
 
+claim_lines as (
 select
   cast(r.int_clm_num as {{ dbt.type_string() }}) as claim_id,
   cast(r.clm_line_num as {{ dbt.type_int() }}) as claim_line_number,
   cast(ct.claim_type as {{ dbt.type_string() }}) as claim_type,
-  cast(concat('bcbs', '|', 'MA', '|', 'COMM', '.', r.indiv_entpr_id) as {{ dbt.type_string() }}) as person_id,
-  cast(r.indiv_entpr_id as {{ dbt.type_string() }}) as member_id,
+  cast(coalesce(r.mbi_id, r.subscriber_id) as {{ dbt.type_string() }}) as person_id,
+  cast(coalesce(r.mbi_id, r.subscriber_id) as {{ dbt.type_string() }}) as member_id,
   cast('bcbs' as {{ dbt.type_string() }}) as payer,
-  cast('COMM' as {{ dbt.type_string() }}) as payer_type,
+  -- HACK: Payer type is null so CMS HCC flows through since currently it only allows medicare + null payer types
+  cast(null as {{ dbt.type_string() }}) as payer_type,
   cast(r.lob as {{ dbt.type_string() }}) as plan,
   coalesce(cast(r.claim_start_date as date), cast(r.svcdt as date)) as claim_start_date,
   coalesce(cast(r.claim_end_date as date), cast(r.svcdt as date)) as claim_end_date,
@@ -161,31 +159,9 @@ select
     when r.icd_subm_ind = '9' then 'icd-9-cm'
     else null
   end as {{ dbt.type_string() }}) as diagnosis_code_type,
-  cast(r.icd_diag1_cd as {{ dbt.type_string() }}) as diagnosis_code_1,
-  cast(r.icd_diag2_cd as {{ dbt.type_string() }}) as diagnosis_code_2,
-  cast(r.icd_diag3_cd as {{ dbt.type_string() }}) as diagnosis_code_3,
-  cast(r.icd_diag4_cd as {{ dbt.type_string() }}) as diagnosis_code_4,
-  cast(r.icd_diag5_cd as {{ dbt.type_string() }}) as diagnosis_code_5,
-  cast(r.icd_diag6_cd as {{ dbt.type_string() }}) as diagnosis_code_6,
-  cast(r.icd_diag7_cd as {{ dbt.type_string() }}) as diagnosis_code_7,
-  cast(r.icd_diag8_cd as {{ dbt.type_string() }}) as diagnosis_code_8,
-  cast(r.icd_diag9_cd as {{ dbt.type_string() }}) as diagnosis_code_9,
-  cast(r.icd_diag10_cd as {{ dbt.type_string() }}) as diagnosis_code_10,
-  cast(null as {{ dbt.type_string() }}) as diagnosis_code_11,
-  cast(null as {{ dbt.type_string() }}) as diagnosis_code_12,
-  cast(null as {{ dbt.type_string() }}) as diagnosis_code_13,
-  cast(null as {{ dbt.type_string() }}) as diagnosis_code_14,
-  cast(null as {{ dbt.type_string() }}) as diagnosis_code_15,
-  cast(null as {{ dbt.type_string() }}) as diagnosis_code_16,
-  cast(null as {{ dbt.type_string() }}) as diagnosis_code_17,
-  cast(null as {{ dbt.type_string() }}) as diagnosis_code_18,
-  cast(null as {{ dbt.type_string() }}) as diagnosis_code_19,
-  cast(null as {{ dbt.type_string() }}) as diagnosis_code_20,
-  cast(null as {{ dbt.type_string() }}) as diagnosis_code_21,
-  cast(null as {{ dbt.type_string() }}) as diagnosis_code_22,
-  cast(null as {{ dbt.type_string() }}) as diagnosis_code_23,
-  cast(null as {{ dbt.type_string() }}) as diagnosis_code_24,
-  cast(null as {{ dbt.type_string() }}) as diagnosis_code_25,
+  {% for i in range(1, 26) -%}
+  cast(r.icd_diag{{ i }}_cd as {{ dbt.type_string() }}) as diagnosis_code_{{ i }},
+  {% endfor -%}
   cast(null as {{ dbt.type_string() }}) as diagnosis_poa_1,
   cast(null as {{ dbt.type_string() }}) as diagnosis_poa_2,
   cast(null as {{ dbt.type_string() }}) as diagnosis_poa_3,
@@ -272,7 +248,7 @@ select
   end as {{ dbt.type_int() }}) as in_network_flag,
   cast(null as {{ dbt.type_string() }}) as group_id,
   cast(null as {{ dbt.type_string() }}) as group_name,
-  cast('bcbs|MA|COMM' as {{ dbt.type_string() }}) as data_source,
+  cast(data_source as {{ dbt.type_string() }}) as data_source,
   cast(r.s3_path as {{ dbt.type_string() }}) as file_name,
   cast(r.date_id as date) as file_date,
   cast(r._run_time as {{ dbt.type_timestamp() }}) as ingest_datetime
@@ -281,3 +257,41 @@ left join claim_types ct on r.int_clm_num = ct.int_clm_num
 where r.rn = 1
   and (r.sprovnpi is null or {{ validate_npi('r.sprovnpi') }} is not null)
   and (r.bprovnpi is null or {{ validate_npi('r.bprovnpi') }} is not null)
+),
+
+-- The same claim can be billed to different members across claim lines. Pick the
+-- (member_id, person_id) pair that appears on the most lines for each claim; ties
+-- break deterministically on the identifiers themselves.
+claim_member_counts as (
+  select
+    claim_id,
+    member_id,
+    person_id,
+    count(*) as line_count
+  from claim_lines
+  where member_id is not null
+  group by claim_id, member_id, person_id
+),
+
+claim_member as (
+  select
+    claim_id,
+    member_id,
+    person_id,
+    row_number() over (
+      partition by claim_id
+      order by line_count desc, member_id, person_id
+    ) as member_rank
+  from claim_member_counts
+)
+
+-- Overwrite every line of a claim with its most prevalent member
+select
+  cl.* replace (
+    coalesce(cm.member_id, cl.member_id) as member_id,
+    coalesce(cm.person_id, cl.person_id) as person_id
+  )
+from claim_lines cl
+left join claim_member cm
+  on cl.claim_id = cm.claim_id
+  and cm.member_rank = 1

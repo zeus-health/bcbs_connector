@@ -2,60 +2,35 @@
 -- Payer, market, and LOB are hard-coded per DE-3263 (raw_data metadata is incorrect)
 -- Dedup handles duplicate file uploads via _run_time
 -- Column renaming from raw names to Tuva shape happens here (not in staging)
--- UNIONs HMO and PPO staging models (one staging model per raw table)
+-- Members come from claim rows, so the same member repeats once per claim line; select distinct collapses them
 
 with unioned as (
-  select
-    cursubid,
-    bcmbrnbr,
-    mem_first_name,
-    mem_last_name,
-    mem_birth_dt,
-    mem_gender,
-    mem_mth_st_dt,
-    mem_mth_end_dt,
-    payer,
-    market,
-    netwk_prod_cd,
-    lob,
-    mem_street,
-    mem_city,
-    mem_state,
-    mem_zip_cd,
-    mem_phone_num,
-    mem_mth_cnt,
-    filename,
-    date_id,
-    s3_path,
-    _run_time,
-    'HMO' as source_plan_type
-  from {{ ref('stg_bcbs_commercial_hmo_member') }}
-  union all
-  select
-    cursubid,
-    bcmbrnbr,
-    mem_first_name,
-    mem_last_name,
-    mem_birth_dt,
-    mem_gender,
-    mem_mth_st_dt,
-    mem_mth_end_dt,
-    payer,
-    market,
-    netwk_prod_cd,
-    lob,
-    mem_street,
-    mem_city,
-    mem_state,
-    mem_zip_cd,
-    mem_phone_num,
-    mem_mth_cnt,
-    filename,
-    date_id,
-    s3_path,
-    _run_time,
-    'PPO' as source_plan_type
-  from {{ ref('stg_bcbs_commercial_ppo_member') }}
+  select distinct
+    subscriber_id as cursubid,
+    mbi_number as bcmbrnbr,
+    member_first_name as mem_first_name,
+    member_last_name as mem_last_name,
+    to_date(member_date_of_birth, 'YYYYMMDD') as mem_birth_dt,
+    member_gender as mem_gender,
+    -- HACK: No start or stop dates so putting in as wide a span as possible
+    cast('1990-01-01' as date) as mem_mth_st_dt,
+    cast('2099-01-01' as date) as mem_mth_end_dt,
+    cast('BCBS' as {{ dbt.type_string() }}) as payer,
+    cast(null as {{ dbt.type_string() }}) as market,
+    cast(null as {{ dbt.type_string() }}) as netwk_prod_cd,
+    line_of_business as lob,
+    cast(null as {{ dbt.type_string() }}) as mem_street,
+    cast(null as {{ dbt.type_string() }}) as mem_city,
+    cast(null as {{ dbt.type_string() }}) as mem_state,
+    cast(null as {{ dbt.type_string() }}) as mem_zip_cd,
+    cast(null as {{ dbt.type_string() }}) as mem_phone_num,
+    cast(null as {{ dbt.type_int() }}) as mem_mth_cnt,
+    cast(null as {{ dbt.type_string() }}) as filename,
+    current_date as date_id,
+    cast(null as {{ dbt.type_string() }}) as s3_path,
+    current_timestamp as _run_time,
+    null as source_plan_type
+  from {{ ref('stg_bcbs_member') }}
 ),
 
 -- Only use the latest snapshot file — each BCBS file is cumulative, so the
@@ -69,24 +44,26 @@ latest_snapshot as (
 ranked as (
   select
     s.*,
-    concat(s.cursubid, s.bcmbrnbr) as member_id,
+    coalesce(s.bcmbrnbr, s.cursubid) as member_id,
     row_number() over (
-      partition by concat(s.cursubid, s.bcmbrnbr), date_trunc('month', s.mem_mth_st_dt)
-      order by s.mem_mth_cnt desc, s.mem_mth_end_dt desc, s._run_time desc
+      partition by coalesce(s.bcmbrnbr, s.cursubid), date_trunc('month', s.mem_mth_st_dt)
+      order by s.mem_mth_cnt desc, s.mem_mth_end_dt desc, s._run_time desc,
+        -- prefer those whose sex is not unknown
+        case when upper(s.mem_gender) in ('M', 'F') then 0 else 1 end
     ) as rn
   from latest_snapshot as s
-  where concat(s.cursubid, s.bcmbrnbr) is not null
+  where coalesce(s.bcmbrnbr, s.cursubid) is not null
 )
 
 select
-    cast(concat('bcbs', '|', 'MA', '|', 'COMM', '.', s.member_id) as {{ dbt.type_string() }}) as person_id,
+    cast(s.member_id as {{ dbt.type_string() }}) as person_id,
     cast(s.member_id as {{ dbt.type_string() }}) as member_id,
     cast(s.member_id as {{ dbt.type_string() }}) as subscriber_id,
     cast(case
       when upper(s.mem_gender) = 'M' then 'male'
       when upper(s.mem_gender) = 'F' then 'female'
       else 'unknown'
-    end as {{ dbt.type_string() }}) as gender,
+    end as {{ dbt.type_string() }}) as sex,
     cast(null as {{ dbt.type_string() }}) as race,
     cast(s.mem_birth_dt as date) as birth_date,
     cast(null as date) as death_date,
@@ -95,7 +72,8 @@ select
     cast(s.mem_mth_st_dt as date) as enrollment_start_date,
     cast(s.mem_mth_end_dt as date) as enrollment_end_date,
     cast('bcbs' as {{ dbt.type_string() }}) as payer,
-    cast('COMM' as {{ dbt.type_string() }}) as payer_type,
+    -- HACK: Payer type is null so CMS HCC flows through since currently it only allows medicare + null payer types
+    cast(null as {{ dbt.type_string() }}) as payer_type,
     cast(s.source_plan_type as {{ dbt.type_string() }}) as plan,
     cast(null as {{ dbt.type_string() }}) as original_reason_entitlement_code,
     cast(null as {{ dbt.type_string() }}) as dual_status_code,
