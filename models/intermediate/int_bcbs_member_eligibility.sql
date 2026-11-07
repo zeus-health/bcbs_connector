@@ -44,24 +44,26 @@ latest_snapshot as (
 ranked as (
   select
     s.*,
-    concat(s.cursubid, s.bcmbrnbr) as member_id,
+    coalesce(s.bcmbrnbr, s.cursubid) as member_id,
     row_number() over (
-      partition by concat(s.cursubid, s.bcmbrnbr), date_trunc('month', s.mem_mth_st_dt)
-      order by s.mem_mth_cnt desc, s.mem_mth_end_dt desc, s._run_time desc
+      partition by coalesce(s.bcmbrnbr, s.cursubid), date_trunc('month', s.mem_mth_st_dt)
+      order by s.mem_mth_cnt desc, s.mem_mth_end_dt desc, s._run_time desc,
+        -- prefer those whose sex is not unknown
+        case when upper(s.mem_gender) in ('M', 'F') then 0 else 1 end
     ) as rn
   from latest_snapshot as s
-  where concat(s.cursubid, s.bcmbrnbr) is not null
+  where coalesce(s.bcmbrnbr, s.cursubid) is not null
 )
 
 select
-    cast(concat('bcbs', '|', 'MA', '|', 'COMM', '.', s.member_id) as {{ dbt.type_string() }}) as person_id,
+    cast(s.member_id as {{ dbt.type_string() }}) as person_id,
     cast(s.member_id as {{ dbt.type_string() }}) as member_id,
     cast(s.member_id as {{ dbt.type_string() }}) as subscriber_id,
     cast(case
       when upper(s.mem_gender) = 'M' then 'male'
       when upper(s.mem_gender) = 'F' then 'female'
       else 'unknown'
-    end as {{ dbt.type_string() }}) as gender,
+    end as {{ dbt.type_string() }}) as sex,
     cast(null as {{ dbt.type_string() }}) as race,
     cast(s.mem_birth_dt as date) as birth_date,
     cast(null as date) as death_date,

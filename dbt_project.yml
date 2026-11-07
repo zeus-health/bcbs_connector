@@ -8,8 +8,10 @@ flags:
   require_ref_searches_node_package_before_root: true
 
 vars:
-  exclude_packages: ["all"]
   claims_enabled: true
+  clinical_enabled: false
+  provider_attribution_enabled: false
+  data_quality_enabled: false
   tuva_schema_prefix: bcbs
 
 model-paths: ["models"]
@@ -26,3 +28,10 @@ clean-targets:
 seeds:
   bcbs_connector:
     +schema: input_layer
+
+models:
+  bcbs_connector:
+    staging:
+      +materialized: table
+    intermediate:
+      +materialized: table

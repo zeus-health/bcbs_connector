@@ -2,7 +2,7 @@ select
     person_id,
     member_id,
     subscriber_id,
-    gender,
+    sex,
     race,
     birth_date,
     death_date,
