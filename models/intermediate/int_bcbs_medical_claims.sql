@@ -1,13 +1,14 @@
 -- Intermediate BCBS medical claims: classify, compute span, and dedupe by claim+line (prefer CURR_CLM_IND='Y')
 -- Payer, market, and LOB are hard-coded per DE-3263 (raw_data metadata is incorrect)
 -- Column renaming from raw names to Tuva shape happens here (not in staging)
--- Like eligibility, medical claims files are cumulative — only use the latest snapshot file.
+-- MED deliveries are appended, so each claim is kept only at its newest extract_year_month
+-- (all of its lines from that period), matching the read-time recency in insights.
 -- Claims with both positive and negative amounts (reversals) cancel out and are excluded.
 
 with latest_snapshot as (
   select *
   from {{ ref('int_bcbs_medical_claim_combined') }}
-  where date_id = (select max(date_id) from {{ ref('int_bcbs_medical_claim_combined') }})
+  qualify extract_year_month = max(extract_year_month) over (partition by int_clm_num)
 ),
 
 -- Claims that have both positive and negative amounts cancel out (reversals)

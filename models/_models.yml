@@ -63,7 +63,7 @@ models:
       
 
   - name: int_bcbs_medical_claim_combined
-    description: "Intermediate model mapping BCBS MED and EDPS staging claims onto a shared claim contract and unioning them"
+    description: "Intermediate model mapping BCBS MED staging claims onto a shared claim contract, with EDPS-disallowed diagnoses removed"
     columns:
       - name: int_clm_num
         data_tests:
